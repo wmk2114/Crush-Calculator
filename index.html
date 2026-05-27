@@ -292,7 +292,7 @@
 <div class="app">
 
   <div class="hero">
-    <h1>Should you ask out your <em>crush?</em></h1>
+    <h1>Should Oscar ask out his <em>crush?</em></h1>
     <p>A Monte Carlo utility simulation. For the analytically romantic.</p>
   </div>
 
@@ -302,11 +302,11 @@
       <div class="panel-title">Benefits distribution (normal)</div>
       <div class="field">
         <label>Benefit mean <span id="bm-out">50</span></label>
-        <input type="range" id="bm" min="0" max="100" step="1" value="50">
+        <input type="range" id="bm" min="0" max="1000" step="1" value="50">
       </div>
       <div class="field">
         <label>Benefit SD <span id="bsd-out">20</span></label>
-        <input type="range" id="bsd" min="1" max="50" step="1" value="20">
+        <input type="range" id="bsd" min="1" max="1000" step="1" value="20">
       </div>
       <div class="preview-chart">
         <canvas id="benefitChart" role="img" aria-label="Normal distribution preview for benefits">Benefits normal distribution</canvas>
@@ -319,11 +319,11 @@
       <div class="panel-title">Costs distribution (normal)</div>
       <div class="field">
         <label>Cost mean <span id="cm-out">20</span></label>
-        <input type="range" id="cm" min="0" max="100" step="1" value="20">
+        <input type="range" id="cm" min="0" max="1000" step="1" value="20">
       </div>
       <div class="field">
         <label>Cost SD <span id="csd-out">10</span></label>
-        <input type="range" id="csd" min="1" max="50" step="1" value="10">
+        <input type="range" id="csd" min="1" max="1000" step="1" value="10">
       </div>
       <div class="preview-chart">
         <canvas id="costChart" role="img" aria-label="Normal distribution preview for costs">Costs normal distribution</canvas>
