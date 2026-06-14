@@ -1,634 +1,1297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Crush Expected Utility Calculator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Crush Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-  :root {
-    --bg: #faf9f7;
-    --surface: #ffffff;
-    --surface-2: #f3f2ef;
-    --border: rgba(0,0,0,0.1);
-    --border-med: rgba(0,0,0,0.18);
-    --text: #1a1a18;
-    --text-2: #5f5e5a;
-    --text-3: #88878099;
-    --pink: #D4537E;
-    --pink-light: #FBEAF0;
-    --pink-dark: #72243E;
-    --blue: #378ADD;
-    --purple: #7F77DD;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-  }
+    <style>
+        /* ============================================================
+           DESIGN TOKENS
+        ============================================================ */
+        :root {
+            --cream:        #FDF8F5;
+            --blush:        #FBF0F4;
+            --rose:         #C9607F;
+            --rose-hover:   #A84F6A;
+            --rose-pale:    #EAC0CF;
+            --rose-fill:    rgba(201, 96, 127, 0.11);
+            --charcoal:     #2B1A14;
+            --warm-gray:    #7A6060;
+            --muted:        #A88C8C;
+            --border:       #E3CDD3;
+            --white:        #FFFFFF;
+            --font-mono:    'Roboto Mono', Menlo, Monaco, Consolas, monospace;
+        }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a18;
-      --surface: #242422;
-      --surface-2: #2e2e2b;
-      --border: rgba(255,255,255,0.1);
-      --border-med: rgba(255,255,255,0.18);
-      --text: #f1efe8;
-      --text-2: #b4b2a9;
-      --text-3: rgba(180,178,169,0.5);
-      --pink-light: #4B1528;
-      --pink-dark: #F4C0D1;
-    }
-  }
+        /* ============================================================
+           RESET & BASE
+        ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 2rem 1rem;
-  }
+        html { scroll-behavior: smooth; }
 
-  .app {
-    max-width: 760px;
-    margin: 0 auto;
-  }
+        body {
+            font-family: var(--font-mono);
+            background: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.7;
+            text-transform: lowercase !important;
+            -webkit-font-smoothing: antialiased;
+        }
 
-  .hero {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
+        /* number input — hide spinners */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+        input[type="number"] { -moz-appearance: textfield; }
 
-  .hero h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 32px;
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1.2;
-  }
+        /* ============================================================
+           PAGE SYSTEM
+        ============================================================ */
+        .page          { display: none; min-height: 100vh; }
+        .page.active   { display: block; }
 
-  .hero h1 em {
-    font-style: italic;
-    color: var(--pink);
-  }
+        /* ============================================================
+           PAGE 0 — LANDING
+        ============================================================ */
+        .l-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 88px 48px 72px;
+            text-align: center;
+        }
 
-  .hero p {
-    font-size: 14px;
-    color: var(--text-2);
-    margin-top: 8px;
-  }
+        .l-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: lowercase;
+            color: var(--rose);
+            margin-bottom: 36px;
+        }
 
-  .panels {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
+        .l-headline {
+            font-family: var(--font-mono);
+            font-size: clamp(46px, 9vw, 96px);
+            font-weight: 500;
+            line-height: 1.04;
+            color: var(--charcoal);
+            max-width: 780px;
+            margin-bottom: 18px;
+        }
 
-  .panel {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
-  }
+        .l-headline em {
+            font-style: italic;
+            color: var(--rose);
+        }
 
-  .panel-title {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--text-2);
-    margin-bottom: 1rem;
-  }
+        .l-subtitle {
+            font-family: var(--font-mono);
+            font-size: clamp(16px, 2.2vw, 22px);
+            font-style: normal;
+            font-weight: 400;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            margin-bottom: 48px;
+        }
 
-  .field {
-    margin-bottom: 1rem;
-  }
+        .l-rule {
+            width: 32px;
+            height: 1px;
+            background: var(--rose-pale);
+            margin: 0 auto 36px;
+        }
 
-  .field label {
-    font-size: 13px;
-    color: var(--text-2);
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
+        .l-desc {
+            font-family: var(--font-mono);
+            font-size: 17px;
+            color: var(--warm-gray);
+            max-width: 540px;
+            line-height: 1.85;
+            margin-bottom: 40px;
+        }
 
-  .field label span {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    color: var(--text);
-    font-weight: 500;
-  }
+        .l-substack { margin-bottom: 56px; }
 
-  input[type=range] {
-    width: 100%;
-    -webkit-appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border-med);
-    outline: none;
-    cursor: pointer;
-  }
+        .l-substack a {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--rose);
+            text-decoration: none;
+            letter-spacing: 0.12em;
+            border-bottom: 1px solid var(--rose-pale);
+            padding-bottom: 2px;
+            transition: border-color 0.2s;
+        }
+        .l-substack a:hover { border-color: var(--rose); }
 
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--pink);
-    cursor: pointer;
-    border: 2px solid var(--surface);
-    box-shadow: 0 0 0 1px var(--pink);
-  }
+        .btn-start {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: lowercase;
+            color: var(--white);
+            background: var(--rose);
+            border: none;
+            padding: 18px 60px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .btn-start:hover {
+            background: var(--rose-hover);
+            transform: translateY(-1px);
+        }
 
-  input[type=range]::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--pink);
-    cursor: pointer;
-    border: 2px solid var(--surface);
-  }
+        .l-deco {
+            margin-top: 52px;
+            color: var(--rose-pale);
+            font-size: 20px;
+            line-height: 1;
+        }
 
-  .preview-chart {
-    margin-top: 1rem;
-    position: relative;
-    height: 110px;
-  }
+        /* ============================================================
+           PROGRESS INDICATOR
+        ============================================================ */
+        .progress {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 0 0;
+        }
 
-  .preview-label {
-    font-size: 11px;
-    color: var(--text-3);
-    text-align: center;
-    margin-top: 4px;
-  }
+        .p-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
 
-  .sim-panel {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-  }
+        .p-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: background 0.35s;
+        }
+        .p-dot.done, .p-dot.now { background: var(--rose); }
 
-  .sim-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
+        .p-label {
+            font-size: 9.5px;
+            font-weight: 500;
+            letter-spacing: 0.13em;
+            text-transform: lowercase;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .p-label.now { color: var(--rose); }
 
-  .sim-row .field {
-    flex: 1;
-    margin-bottom: 0;
-  }
+        .p-line {
+            width: 52px;
+            height: 1px;
+            background: var(--border);
+            margin-top: 3px; /* vertically center with dot */
+            flex-shrink: 0;
+        }
 
-  .run-btn {
-    padding: 10px 24px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--pink);
-    background: transparent;
-    color: var(--pink);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background .15s, color .15s;
-  }
+        /* ============================================================
+           CALC PAGES (1 – 3) — SHARED LAYOUT
+        ============================================================ */
+        .calc-shell {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 56px 72px;
+        }
 
-  .run-btn:hover {
-    background: var(--pink);
-    color: #fff;
-  }
+        .calc-head {
+            padding: 44px 0 28px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 52px;
+        }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 1rem;
-  }
+        .step-eyebrow {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.16em;
+            text-transform: lowercase;
+            color: var(--rose);
+            margin-bottom: 10px;
+        }
 
-  .stat-card {
-    background: var(--surface-2);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    text-align: center;
-  }
+        .step-title {
+            font-family: var(--font-mono);
+            font-size: clamp(30px, 4vw, 46px);
+            font-weight: 500;
+            color: var(--charcoal);
+            line-height: 1.15;
+        }
 
-  .stat-card .slabel {
-    font-size: 11px;
-    color: var(--text-2);
-    margin-bottom: 4px;
-  }
+        .calc-content {
+            display: grid;
+            gap: 40px;
+        }
 
-  .stat-card .sval {
-    font-family: 'DM Mono', monospace;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text);
-  }
+        .copy-stack {
+            max-width: 820px;
+            margin: 0 auto;
+        }
 
-  .verdict {
-    border-radius: var(--radius-md);
-    padding: 12px 16px;
-    font-size: 15px;
-    font-weight: 500;
-    text-align: center;
-    margin-bottom: 1rem;
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-  }
+        .copy-stack p + p {
+            margin-top: 24px;
+        }
 
-  .verdict.go {
-    background: var(--pink-light);
-    color: var(--pink-dark);
-    border: 0.5px solid var(--pink);
-  }
+        .copy {
+            font-size: 18px;
+            color: var(--warm-gray);
+            line-height: 1.95;
+            margin-bottom: 0;
+            font-family: var(--font-mono);
+        }
 
-  .verdict.wait {
-    background: var(--surface-2);
-    color: var(--text-2);
-    border: 0.5px solid var(--border);
-  }
+        .param-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(320px, 1fr));
+            gap: 24px;
+            align-items: stretch;
+            max-width: 920px;
+            margin: 0 auto;
+        }
 
-  .output-chart {
-    position: relative;
-    height: 260px;
-    margin-top: 8px;
-  }
+        .param-box {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 26px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 22px;
+            min-height: 220px;
+        }
 
-  .chart-label {
-    font-size: 11px;
-    color: var(--text-3);
-    text-align: center;
-    margin-top: 6px;
-  }
+        .field-group { margin-bottom: 0; }
 
-  .pending {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100px;
-    color: var(--text-3);
-    font-size: 13px;
-    gap: 8px;
-  }
+        .field-num {
+            width: 100%;
+            max-width: 220px;
+            border: none;
+            border-bottom: 2px solid var(--border);
+            background: transparent;
+            font-family: var(--font-mono);
+            font-size: 28px;
+            font-weight: 500;
+            color: var(--charcoal);
+            padding: 6px 0;
+            text-align: left;
+            outline: none;
+            transition: border-color 0.2s;
+            display: block;
+        }
 
-  .heart {
-    color: var(--pink);
-    font-size: 18px;
-  }
+        .field-num:focus { border-color: var(--rose); }
 
-  @media (max-width: 560px) {
-    .panels { grid-template-columns: 1fr; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .sim-row { flex-direction: column; align-items: stretch; }
-  }
-</style>
+        .graph-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 920px;
+            margin: 0 auto;
+        }
+
+        .graph-card canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* Nav row */
+        .calc-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 44px;
+            border-top: 1px solid var(--border);
+            margin-top: 52px;
+        }
+
+        .btn-back {
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: var(--muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 10px 0;
+            letter-spacing: 0.02em;
+            transition: color 0.2s;
+        }
+        .btn-back:hover { color: var(--charcoal); }
+
+        .btn-next {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: lowercase;
+            color: var(--white);
+            background: var(--rose);
+            border: none;
+            padding: 16px 44px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-next:hover { background: var(--rose-hover); }
+
+        /* ============================================================
+           PAGE 4 — RESULTS
+        ============================================================ */
+        .res-shell {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 72px 56px 88px;
+        }
+
+        .res-top {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .res-eyebrow {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.16em;
+            text-transform: lowercase;
+            color: var(--rose);
+            margin-bottom: 16px;
+        }
+
+        .res-verdict {
+            font-family: var(--font-mono);
+            font-size: clamp(42px, 7vw, 72px);
+            font-style: normal;
+            font-weight: 500;
+            color: var(--charcoal);
+            line-height: 1.1;
+            margin-bottom: 22px;
+        }
+
+        .res-summary {
+            font-family: var(--font-mono);
+            font-size: 17px;
+            color: var(--warm-gray);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.82;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+
+        .stat-box {
+            background: var(--blush);
+            padding: 28px 18px;
+            text-align: center;
+        }
+
+        .stat-num {
+            font-family: var(--font-mono);
+            font-size: 42px;
+            font-weight: 500;
+            color: var(--charcoal);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-lab {
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: lowercase;
+            color: var(--muted);
+        }
+
+        .res-graph-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            padding: 26px 26px 20px;
+            margin-bottom: 36px;
+            max-width: 920px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .res-graph-label {
+            font-size: 9.5px;
+            font-weight: 500;
+            letter-spacing: 0.13em;
+            text-transform: lowercase;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        .res-graph-card canvas {
+            display: block;
+            width: 100%;
+        }
+
+        .btn-restart {
+            display: block;
+            width: 100%;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: lowercase;
+            color: var(--rose);
+            background: transparent;
+            border: 1px solid var(--rose-pale);
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 44px;
+        }
+        .btn-restart:hover {
+            border-color: var(--rose);
+            background: var(--blush);
+        }
+
+        .explain-box {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 22px 24px;
+            margin-bottom: 32px;
+            color: var(--warm-gray);
+        }
+
+        .explain-box summary {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+            outline: none;
+        }
+
+        .explain-box details[open] summary {
+            color: var(--charcoal);
+        }
+
+        .explain-copy {
+            margin-top: 14px;
+            font-size: 15px;
+            line-height: 1.75;
+        }
+
+        .explain-copy p {
+            margin: 0 0 12px;
+        }
+
+        .disclaimer {
+            font-family: var(--font-mono);
+            font-style: italic;
+            font-size: 14px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.75;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+        ============================================================ */
+        @media (max-width: 700px) {
+            .calc-shell { padding: 0 22px 56px; }
+            .res-shell  { padding: 52px 22px 64px; }
+            .stats-row  { grid-template-columns: 1fr; gap: 12px; }
+            .l-headline { font-size: 46px; }
+            .param-row { grid-template-columns: 1fr; }
+            .graph-card, .res-graph-card { padding: 24px; }
+        }
+    </style>
 </head>
 <body>
-<div class="app">
 
-  <div class="hero">
-    <h1>Should Oscar ask out his <em>crush?</em></h1>
-    <p>A Monte Carlo utility simulation. For the analytically romantic.</p>
-  </div>
 
-  <div class="panels">
-    <!-- Benefits -->
-    <div class="panel">
-      <div class="panel-title">Benefits distribution (normal)</div>
-      <div class="field">
-        <label>Benefit mean <span id="bm-out">50</span></label>
-        <input type="range" id="bm" min="0" max="1000" step="1" value="50">
-      </div>
-      <div class="field">
-        <label>Benefit SD <span id="bsd-out">20</span></label>
-        <input type="range" id="bsd" min="1" max="1000" step="1" value="20">
-      </div>
-      <div class="preview-chart">
-        <canvas id="benefitChart" role="img" aria-label="Normal distribution preview for benefits">Benefits normal distribution</canvas>
-      </div>
-      <div class="preview-label">Preview of benefits distribution</div>
-    </div>
+<!-- ================================================================
+     PAGE 0 — LANDING
+================================================================ -->
+<section id="page-0" class="page active">
+    <div class="l-wrap">
+        <p class="l-eyebrow">an hedonic calculus</p>
 
-    <!-- Costs -->
-    <div class="panel">
-      <div class="panel-title">Costs distribution (normal)</div>
-      <div class="field">
-        <label>Cost mean <span id="cm-out">20</span></label>
-        <input type="range" id="cm" min="0" max="1000" step="1" value="20">
-      </div>
-      <div class="field">
-        <label>Cost SD <span id="csd-out">10</span></label>
-        <input type="range" id="csd" min="1" max="1000" step="1" value="10">
-      </div>
-      <div class="preview-chart">
-        <canvas id="costChart" role="img" aria-label="Normal distribution preview for costs">Costs normal distribution</canvas>
-      </div>
-      <div class="preview-label">Preview of costs distribution</div>
-    </div>
+        <h1 class="l-headline">
+            should you ask out your <br> <em>crush?</em>
+        </h1>
 
-    <!-- Beta -->
-    <div class="panel" style="grid-column: 1 / -1;">
-      <div class="panel-title">Crush probability (beta distribution)</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-        <div>
-          <div class="field">
-            <label>Alpha (α) shape <span id="a-out">1.0</span></label>
-            <input type="range" id="a" min="0.1" max="10" step="0.1" value="1">
-          </div>
-          <div class="field">
-            <label>Beta (β) shape <span id="b-out">1.0</span></label>
-            <input type="range" id="b" min="0.1" max="10" step="0.1" value="1">
-          </div>
-          <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-top:4px;">
-            α = β = 1 → uniform (pure uncertainty)<br>
-            α &gt; β → optimistic prior<br>
-            β &gt; α → pessimistic prior
-          </p>
+        <p class="l-subtitle">a calculator</p>
+        <div class="l-rule"></div>
+
+        <p class="l-desc">
+            definitely a joke. possibly useful.
+        </p>
+
+        <!-- UPDATE this URL to your actual Substack link -->
+        <div class="l-substack">
+            <a href="https://substack.com/@wyatthasnothingtosay/notes" target="_blank" rel="noopener">
+                read the full essay on Substack →
+            </a>
         </div>
-        <div>
-          <div class="preview-chart">
-            <canvas id="betaChart" role="img" aria-label="Beta distribution preview for crush probability">Beta distribution</canvas>
-          </div>
-          <div class="preview-label">P(crush likes you back)</div>
+
+        <button class="btn-start" onclick="go(1)">let's find out</button>
+
+        <div class="l-deco">♡</div>
+    </div>
+</section>
+
+
+<!-- ================================================================
+     PAGE 1 — PROBABILITY (BETA DISTRIBUTION)
+================================================================ -->
+<section id="page-1" class="page">
+    <div class="calc-shell">
+
+        <div class="progress">
+            <div class="p-step">
+                <div class="p-dot now" id="dot1"></div>
+                <span class="p-label now" id="lbl1">probability</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot" id="dot2"></div>
+                <span class="p-label" id="lbl2">benefits</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot" id="dot3"></div>
+                <span class="p-label" id="lbl3">costs</span>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Simulation controls -->
-  <div class="sim-panel">
-    <div class="sim-row">
-      <div class="field">
-        <label>Simulations <span id="sims-out">10,000</span></label>
-        <input type="range" id="sims" min="1000" max="50000" step="1000" value="10000">
-      </div>
-      <button class="run-btn" id="runBtn">Run simulation →</button>
-    </div>
-  </div>
+        <div class="calc-head">
+            <p class="step-eyebrow">step 1 of 3</p>
+            <h2 class="step-title">what's the chance your crush likes you?</h2>
+        </div>
 
-  <!-- Results -->
-  <div id="results" style="display:none;">
-    <div class="stats-grid">
-      <div class="stat-card"><div class="slabel">Mean net benefit</div><div class="sval" id="s-mean">—</div></div>
-      <div class="stat-card"><div class="slabel">Median</div><div class="sval" id="s-median">—</div></div>
-      <div class="stat-card"><div class="slabel">P10</div><div class="sval" id="s-p10">—</div></div>
-      <div class="stat-card"><div class="slabel">P90</div><div class="sval" id="s-p90">—</div></div>
-    </div>
-    <div class="verdict" id="verdict"></div>
-    <div class="sim-panel">
-      <div class="panel-title">Simulated net benefit density</div>
-      <div class="output-chart">
-        <canvas id="densityChart" role="img" aria-label="Density distribution of simulated net benefits">Density chart</canvas>
-      </div>
-      <div class="chart-label">Net benefit = benefits × P(yes) − costs × (1 − P(yes))</div>
-    </div>
-  </div>
+        <div class="calc-content">
+            <div class="copy-stack">
+                <p class="copy">
+                    First, let's come up with a probability for how likely it is your crush is into you.
+                </p>
+                <p class="copy">
+                    Odds are you're not sure about what the exact number is, but you have an educated guess. Below, you can create a graph that reflects your uncertainty, using what's called the <strong>beta distribution</strong>.
+                </p>
+                <p class="copy">
+                    The beta distribution takes two numbers, <strong>α</strong> and <strong>β</strong>. The mean of your distribution is α/(α+β). If you're super confident about how likely it is that your crush likes you, use higher values of 
+                    both α and β. If you're less certain, use smaller ones.
+                </p>
+                <p class="copy">
+                    A good starting point: If you think the odds are around 50/50, try α = 5, β = 5. More optimistic? Try α = 7, β = 3. Preparing for the worst? Try α = 2, β = 8.
+                </p>
+            </div>
 
-  <div id="pending" class="sim-panel">
-    <div class="pending">
-      <span class="heart">♥</span>
-      Set your parameters and hit "Run simulation" to see results
+            <div class="param-row">
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="p-alpha">α — alpha</label>
+                        <input type="number" class="field-num" id="p-alpha" min="0.1" step="0.5" value="5" autocomplete="off">
+                        <p class="field-hint">Higher α relative to  β → more optimistic</p>
+                    </div>
+                </div>
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="p-beta">β — beta</label>
+                        <input type="number" class="field-num" id="p-beta" min="0.1" step="0.5" value="5" autocomplete="off">
+                        <p class="field-hint">Higher β relative to α → more pessimistic</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-card">
+                <p class="graph-title">distribution for p — probability that your crush likes you</p>
+                <canvas id="c-beta" data-height="340"></canvas>
+            </div>
+        </div>
+
+        <div class="calc-nav">
+            <button class="btn-back" onclick="go(0)">← back</button>
+            <button class="btn-next" onclick="go(2)">next →</button>
+        </div>
+
     </div>
-  </div>
+</section>
 
-</div>
 
+<!-- ================================================================
+     PAGE 2 — BENEFITS (NORMAL DISTRIBUTION)
+================================================================ -->
+<section id="page-2" class="page">
+    <div class="calc-shell">
+
+        <div class="progress">
+            <div class="p-step">
+                <div class="p-dot done"></div>
+                <span class="p-label">Probability</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot now"></div>
+                <span class="p-label now">benefits</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot"></div>
+                <span class="p-label">Costs</span>
+            </div>
+        </div>
+
+        <div class="calc-head">
+            <p class="step-eyebrow">step 2 of 3</p>
+            <h2 class="step-title">what would it be worth?</h2>
+        </div>
+
+        <div class="calc-content">
+            <div class="copy-stack">
+                <p class="copy">
+                    Imagine you <em>knew</em> your crush liked you back. How much would someone need to pay you <strong>not</strong> to ask them out? That value — the amount you'd be giving up — is how we're going to measure the potential benefits of asking someone out.
+                </p>
+                <p class="copy">
+                    Again, you might not be certain about how much money it'd actually take to stop you from asking out your crush. To reflect that uncertainty,
+                    we're going to use what's called a normal distribution. The mean, μ, is your best guess of how much money it'd take.
+                    If you're confident about how much money you'd need not to ask out your crush, use a smaller standard deviation, σ, relative to your mean.
+                    If you're less confident, use a greater value for σ.
+                </p>
+            </div>
+
+            <div class="param-row">
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="b-mu">mean (μ):</label>
+                        <span class="field-sub"> expected benefit</span>
+                        <input type="number" class="field-num" id="b-mu" step="10" value="100" autocomplete="off">
+                        <p class="field-hint">how much money you'd need <strong>not</strong> to ask out your crush, if you knew they liked you</p>
+                    </div>
+                </div>
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="b-sigma">standard deviation (σ)</label>
+                        <input type="number" class="field-num" id="b-sigma" step="5" min="0.1" value="30" autocomplete="off">
+                        <p class="field-hint">smaller σ → more confident about how much money you'd need</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-card">
+                <p class="graph-title">distribution of the expected benefits of asking someone out — b</p>
+                <canvas id="c-benefit" data-height="340"></canvas>
+            </div>
+        </div>
+
+        <div class="calc-nav">
+            <button class="btn-back" onclick="go(1)">← back</button>
+            <button class="btn-next" onclick="go(3)">next →</button>
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ================================================================
+     PAGE 3 — COSTS (NORMAL DISTRIBUTION)
+================================================================ -->
+<section id="page-3" class="page">
+    <div class="calc-shell">
+
+        <div class="progress">
+            <div class="p-step">
+                <div class="p-dot done"></div>
+                <span class="p-label">Probability</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot done"></div>
+                <span class="p-label">benefits</span>
+            </div>
+            <div class="p-line"></div>
+            <div class="p-step">
+                <div class="p-dot now"></div>
+                <span class="p-label now">Costs</span>
+            </div>
+        </div>
+
+        <div class="calc-head">
+            <p class="step-eyebrow">step 3 of 3</p>
+            <h2 class="step-title">what are you risking?</h2>
+        </div>
+
+        <div class="calc-content">
+            <div class="copy-stack">
+                <p class="copy">
+                    Now flip it. Imagine you <em>knew</em> your crush doesn't like you romantically. How much would someone need to pay you to ask them out anyway?
+                </p>
+            </div>
+
+            <div class="param-row">
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="c-mu">mean (μ):</label>
+                        <span class="field-sub">your expected cost</span>
+                        <input type="number" class="field-num" id="c-mu" step="10" value="40" autocomplete="off">
+                        <p class="field-hint">how much money you'd need <strong>to</strong> ask out your crush, if you knew they didn't like you</p>
+                    </div>
+                </div>
+                <div class="param-box">
+                    <div class="field-group">
+                        <label class="field-label" for="c-sigma">standard deviation (σ)</label>
+                        <input type="number" class="field-num" id="c-sigma" step="5" min="0.1" value="15" autocomplete="off">
+                        <span class="field-sub">smaller σ → more confident about how much money you'd need</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graph-card">
+                <p class="graph-title">distribution of the potential costs of asking someone out — c</p>
+                <canvas id="c-cost" data-height="340"></canvas>
+            </div>
+        </div>
+
+        <div class="calc-nav">
+            <button class="btn-back" onclick="go(2)">← back</button>
+            <button class="btn-next" onclick="simulate()">run the numbers →</button>
+        </div>
+
+    </div>
+</section>
+
+
+<!-- ================================================================
+     PAGE 4 — RESULTS
+================================================================ -->
+<section id="page-4" class="page">
+    <div class="res-shell">
+
+        <div class="res-top">
+            <p class="res-eyebrow">50,000 simulations complete</p>
+            <h2 class="res-verdict" id="res-verdict">—</h2>
+            <p class="res-summary" id="res-summary"></p>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-num" id="s-pct">—</div>
+                <div class="stat-lab">positive outcomes</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" id="s-mean">—</div>
+                <div class="stat-lab">mean expected value</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" id="s-median">—</div>
+                <div class="stat-lab">median expected value</div>
+            </div>
+        </div>
+
+        <div class="res-graph-card">
+            <p class="res-graph-label">
+                distribution of the expected value of asking someone out — e
+            </p>
+            <canvas id="c-results" data-height="340"></canvas>
+        </div>
+
+        <div class="explain-box">
+            <details>
+                <summary>why this recommendation?</summary>
+                <div class="explain-copy">
+                    <p>the calculator runs a bunch of simulations to estimate the expected value of asking your crush out. each simulation picks a likely chance your crush likes you, a likely benefit if they do, and a likely cost if they don't.</p>
+                    <p>the expected value formula is: <strong>e = b · p − c · (1 − p)</strong>. that means the value of asking out is the benefit times the chance they like you, minus the cost times the chance they don't.</p>
+                    <p>running lots of simulations helps show whether the choice is usually positive or usually negative, instead of trusting just one guess.</p>
+                </div>
+            </details>
+        </div>
+
+        <button class="btn-restart" onclick="go(0)">run it again</button>
+
+        <p class="disclaimer">
+            remember that this calculator only knows what you tell it.<br>
+            consider what numbers you used and whether they're reasonable.
+        </p>
+
+    </div>
+</section>
+
+
+<!-- ================================================================
+     JAVASCRIPT
+================================================================ -->
 <script>
-const $ = id => document.getElementById(id);
+/* ------------------------------------------------------------------
+   NAVIGATION
+------------------------------------------------------------------ */
+let curPage = 0;
 
-function normalPDF(x, mu, sigma) {
-  return Math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * Math.sqrt(2 * Math.PI));
+function go(n) {
+    document.getElementById('page-' + curPage).classList.remove('active');
+    document.getElementById('page-' + n).classList.add('active');
+    curPage = n;
+    window.scrollTo(0, 0);
+
+    // Draw the relevant graph after the page is visible
+    if (n === 1) raf(drawBeta);
+    if (n === 2) raf(drawBenefit);
+    if (n === 3) raf(drawCost);
+}
+
+// Double-rAF: ensures DOM has painted before we measure canvas size
+function raf(fn) {
+    requestAnimationFrame(() => requestAnimationFrame(fn));
+}
+
+// Live updates as user types
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('p-alpha').addEventListener('input', drawBeta);
+    document.getElementById('p-beta').addEventListener('input', drawBeta);
+    document.getElementById('b-mu').addEventListener('input', drawBenefit);
+    document.getElementById('b-sigma').addEventListener('input', drawBenefit);
+    document.getElementById('c-mu').addEventListener('input', drawCost);
+    document.getElementById('c-sigma').addEventListener('input', drawCost);
+});
+
+
+/* ------------------------------------------------------------------
+   MATH — LOG-GAMMA (LANCZOS APPROXIMATION)
+------------------------------------------------------------------ */
+function logGamma(z) {
+    const g = 7;
+    const C = [
+        0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+        771.32342877765313, -176.61502916214059, 12.507343278686905,
+        -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7
+    ];
+    if (z < 0.5) {
+        return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
+    }
+    z -= 1;
+    let x = C[0];
+    for (let i = 1; i < g + 2; i++) x += C[i] / (z + i);
+    const t = z + g + 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
 }
 
 function betaPDF(x, a, b) {
-  if (x <= 0 || x >= 1) return 0;
-  const logB = lgamma(a) + lgamma(b) - lgamma(a + b);
-  return Math.exp((a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - logB);
+    if (x <= 0 || x >= 1 || a <= 0 || b <= 0) return 0;
+    const lv = (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x)
+             - (logGamma(a) + logGamma(b) - logGamma(a + b));
+    const v = Math.exp(lv);
+    return isFinite(v) ? v : 0;
 }
 
-function lgamma(z) {
-  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
-             -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-  let x = z, y = z, tmp = x + 5.5, ser = 1.000000000190015;
-  tmp -= (x + 0.5) * Math.log(tmp);
-  for (let j = 0; j < 6; j++) ser += c[j] / ++y;
-  return -tmp + Math.log(2.5066282746310005 * ser / x);
+function normalPDF(x, mu, s) {
+    return (1 / (s * Math.SQRT2 * Math.sqrt(Math.PI))) *
+           Math.exp(-0.5 * ((x - mu) / s) ** 2);
 }
 
-function sampleNormal(mu, sigma) {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+// Box-Muller normal sampler
+function randNorm(mu = 0, s = 1) {
+    const u1 = Math.random(), u2 = Math.random();
+    return mu + s * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-function sampleGamma(a) {
-  if (a < 1) return sampleGamma(1 + a) * Math.pow(Math.random(), 1 / a);
-  const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
-  while (true) {
-    let x = sampleNormal(0, 1), v = 1 + c * x;
-    if (v <= 0) continue;
-    v = v * v * v;
-    const u = Math.random();
-    if (u < 1 - 0.0331 * (x * x) * (x * x)) return d * v;
-    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
-  }
+// Gamma sampler — Marsaglia & Tsang (2000)
+function sampleGamma(shape) {
+    if (shape <= 0) return 0;
+    if (shape < 1) return sampleGamma(1 + shape) * Math.pow(Math.random(), 1 / shape);
+    const d = shape - 1 / 3;
+    const c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+        let x, v;
+        do { x = randNorm(); v = 1 + c * x; } while (v <= 0);
+        v = v * v * v;
+        const u = Math.random();
+        if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+        if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
 }
 
 function sampleBeta(a, b) {
-  const ga = sampleGamma(a), gb = sampleGamma(b);
-  return ga / (ga + gb);
+    const ga = sampleGamma(a), gb = sampleGamma(b);
+    return (ga + gb === 0) ? 0.5 : ga / (ga + gb);
 }
 
-function quantile(arr, q) {
-  const sorted = [...arr].sort((a, b) => a - b);
-  const pos = (sorted.length - 1) * q;
-  const lo = Math.floor(pos), hi = Math.ceil(pos);
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+
+/* ------------------------------------------------------------------
+   CANVAS HELPERS
+------------------------------------------------------------------ */
+const COL_ROSE        = '#C9607F';
+const COL_ROSE_FILL   = 'rgba(201, 96, 127, 0.11)';
+const COL_AXIS        = '#E3CDD3';
+const COL_TEXT        = '#A88C8C';
+const COL_CHARCOAL    = '#2B1A14';
+const COL_GREEN       = 'rgba(88, 161, 114, 0.72)';
+const COL_RED         = 'rgba(201, 96, 127, 0.58)';
+
+// Size the canvas to its rendered width, then return its 2d context
+function sizeCanvas(id) {
+    const el = document.getElementById(id);
+    const width = Math.max(Math.round(el.clientWidth), 280);
+    const displayHeight = Number(el.dataset.height || el.getAttribute('height')) || 320;
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    el.style.width = width + 'px';
+    el.style.height = displayHeight + 'px';
+    el.width  = Math.round(width * ratio);
+    el.height = Math.round(displayHeight * ratio);
+    const ctx = el.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return {ctx, width, height: displayHeight};
 }
 
-function makeNormalData(mu, sigma) {
-  const range = 4 * sigma, step = range / 60;
-  const xs = [], ys = [];
-  for (let x = mu - range; x <= mu + range; x += step) {
-    xs.push(+x.toFixed(2));
-    ys.push(normalPDF(x, mu, sigma));
-  }
-  return { xs, ys };
+function drawHLine(ctx, x, y, w) {
+    ctx.strokeStyle = COL_AXIS;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.stroke();
 }
 
-function makeBetaData(a, b) {
-  const xs = [], ys = [];
-  for (let x = 0.01; x <= 0.99; x += 0.01) {
-    xs.push(+x.toFixed(2));
-    ys.push(betaPDF(x, a, b));
-  }
-  return { xs, ys };
+function tickAt(ctx, px, baseY, label) {
+    ctx.strokeStyle = COL_AXIS;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px, baseY);
+    ctx.lineTo(px, baseY + 5);
+    ctx.stroke();
+
+    ctx.fillStyle = COL_TEXT;
+    ctx.font = '12px Roboto Mono, Menlo, Monaco, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, px, baseY + 18);
 }
 
-const baseOpts = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: { x: { display: false }, y: { display: false } },
-  elements: { point: { radius: 0 } },
-  animation: { duration: 150 }
-};
-
-function initLineChart(id, color) {
-  return new Chart($(id).getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        data: [],
-        borderColor: color,
-        borderWidth: 1.5,
-        fill: true,
-        backgroundColor: color + '22',
-        tension: 0.3
-      }]
-    },
-    options: JSON.parse(JSON.stringify(baseOpts))
-  });
+function numFmt(v) {
+    const a = Math.abs(v);
+    if (a >= 10000) return (v / 1000).toFixed(1) + 'k';
+    if (a >= 1000)  return (v / 1000).toFixed(2) + 'k';
+    if (a >= 100)   return Math.round(v).toString();
+    if (a >= 10)    return v.toFixed(1);
+    return v.toFixed(2);
 }
 
-const benefitChart = initLineChart('benefitChart', '#D4537E');
-const costChart    = initLineChart('costChart', '#378ADD');
-const betaChartObj = initLineChart('betaChart', '#9B59B6');
-
-function updateNormal(chart, mu, sigma) {
-  const { xs, ys } = makeNormalData(mu, sigma);
-  chart.data.labels = xs;
-  chart.data.datasets[0].data = ys;
-  chart.update('none');
+function axisLabel(ctx, cx, y, text) {
+    ctx.fillStyle = COL_TEXT;
+    ctx.font = '12px Roboto Mono, Menlo, Monaco, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(text, cx, y - 2);
 }
 
-function updateBeta(a, b) {
-  const { xs, ys } = makeBetaData(a, b);
-  betaChartObj.data.labels = xs;
-  betaChartObj.data.datasets[0].data = ys;
-  betaChartObj.update('none');
-}
 
-function getVals() {
-  return {
-    bm: +$('bm').value, bsd: +$('bsd').value,
-    cm: +$('cm').value, csd: +$('csd').value,
-    a:  +$('a').value,  b:   +$('b').value,
-    sims: +$('sims').value
-  };
-}
+/* ------------------------------------------------------------------
+   BETA GRAPH
+------------------------------------------------------------------ */
+function drawBeta() {
+    const a = Math.max(parseFloat(document.getElementById('p-alpha').value) || 1, 0.01);
+    const b = Math.max(parseFloat(document.getElementById('p-beta').value)  || 1, 0.01);
 
-function wire(sliderId, outId, fmt, cb) {
-  $(sliderId).addEventListener('input', () => {
-    $(outId).textContent = fmt(+$(sliderId).value);
-    cb();
-  });
-}
+    const {ctx, width: W, height: H} = sizeCanvas('c-beta');
+    const PL = 36, PR = 12, PT = 24, PB = 72;
+    const pw = W - PL - PR, ph = H - PT - PB;
 
-wire('bm',  'bm-out',  v => v, () => { const v=getVals(); updateNormal(benefitChart, v.bm, v.bsd); });
-wire('bsd', 'bsd-out', v => v, () => { const v=getVals(); updateNormal(benefitChart, v.bm, v.bsd); });
-wire('cm',  'cm-out',  v => v, () => { const v=getVals(); updateNormal(costChart, v.cm, v.csd); });
-wire('csd', 'csd-out', v => v, () => { const v=getVals(); updateNormal(costChart, v.cm, v.csd); });
-wire('a',   'a-out',   v => v.toFixed(1), () => { const v=getVals(); updateBeta(v.a, v.b); });
-wire('b',   'b-out',   v => v.toFixed(1), () => { const v=getVals(); updateBeta(v.a, v.b); });
-wire('sims','sims-out',v => v.toLocaleString(), () => {});
+    ctx.clearRect(0, 0, W, H);
 
-updateNormal(benefitChart, 50, 20);
-updateNormal(costChart, 20, 10);
-updateBeta(1, 1);
-
-let densityChart = null;
-
-function runSimulation() {
-  const { bm, bsd, cm, csd, a, b, sims } = getVals();
-  const results = [];
-  for (let i = 0; i < sims; i++) {
-    const benefit = sampleNormal(bm, bsd);
-    const cost    = sampleNormal(cm, csd);
-    const p       = sampleBeta(a, b);
-    results.push(benefit * p - cost * (1 - p));
-  }
-
-  const mn  = results.reduce((s, v) => s + v, 0) / results.length;
-  const med = quantile(results, 0.5);
-  const p10 = quantile(results, 0.10);
-  const p90 = quantile(results, 0.90);
-
-  $('s-mean').textContent   = mn.toFixed(1);
-  $('s-median').textContent = med.toFixed(1);
-  $('s-p10').textContent    = p10.toFixed(1);
-  $('s-p90').textContent    = p90.toFixed(1);
-
-  const pct = results.filter(v => v >= 0).length / results.length;
-  const verdict = $('verdict');
-  if (pct >= 0.5) {
-    verdict.className = 'verdict go';
-    verdict.textContent = `Go for it! ${(pct * 100).toFixed(0)}% of simulations show positive net benefit.`;
-  } else {
-    verdict.className = 'verdict wait';
-    verdict.textContent = `Maybe reconsider. Only ${(pct * 100).toFixed(0)}% of simulations show positive net benefit.`;
-  }
-
-  const minV = Math.min(...results), maxV = Math.max(...results);
-  const bins = 60, binW = (maxV - minV) / bins;
-  const counts = new Array(bins).fill(0);
-  const labels = [];
-  for (let i = 0; i < bins; i++) labels.push((minV + binW * (i + 0.5)).toFixed(1));
-  for (const v of results) {
-    const idx = Math.min(bins - 1, Math.floor((v - minV) / binW));
-    counts[idx]++;
-  }
-  const maxCount = Math.max(...counts);
-  const density  = counts.map(c => c / maxCount);
-  const bgColors     = labels.map(l => parseFloat(l) >= 0 ? '#D4537E44' : '#73726c33');
-  const borderColors = labels.map(l => parseFloat(l) >= 0 ? '#D4537E'   : '#888780');
-
-  if (densityChart) densityChart.destroy();
-  densityChart = new Chart($('densityChart').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: density,
-        backgroundColor: bgColors,
-        borderColor: borderColors,
-        borderWidth: 0.5,
-        borderRadius: 1
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: items => `Net benefit ≈ ${parseFloat(items[0].label).toFixed(1)}`,
-            label: items => `Relative frequency: ${(items.raw * 100).toFixed(1)}%`
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { autoSkip: true, maxTicksLimit: 8, font: { size: 11 }, color: '#88878099' },
-          grid: { display: false }
-        },
-        y: { display: false }
-      },
-      animation: { duration: 400 }
+    // Sample PDF
+    const N = 500;
+    const xs = [], ys = [];
+    for (let i = 1; i < N; i++) {
+        const x = i / N;
+        xs.push(x);
+        ys.push(betaPDF(x, a, b));
     }
-  });
 
-  $('pending').style.display = 'none';
-  $('results').style.display = 'block';
+    const finite = ys.filter(y => isFinite(y));
+    const yMax   = (finite.length ? Math.max(...finite) : 2) * 1.15;
+
+    const tx = x => PL + x * pw;
+    const ty = y => PT + ph - Math.min(y / yMax, 1.02) * ph;
+
+    // Fill
+    ctx.beginPath();
+    let startedFill = true;
+    for (let i = 0; i < xs.length; i++) {
+        if (!isFinite(ys[i])) { startedFill = true; continue; }
+        if (startedFill) { ctx.moveTo(tx(xs[i]), PT + ph); startedFill = false; }
+        ctx.lineTo(tx(xs[i]), ty(ys[i]));
+    }
+    ctx.lineTo(tx(xs[xs.length - 1]), PT + ph);
+    ctx.closePath();
+    ctx.fillStyle = COL_ROSE_FILL;
+    ctx.fill();
+
+    // Stroke
+    ctx.beginPath();
+    let penDown = false;
+    for (let i = 0; i < xs.length; i++) {
+        const y = ys[i];
+        if (!isFinite(y) || y > yMax * 8) { penDown = false; continue; }
+        if (!penDown) { ctx.moveTo(tx(xs[i]), ty(y)); penDown = true; }
+        else ctx.lineTo(tx(xs[i]), ty(y));
+    }
+    ctx.strokeStyle = COL_ROSE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Axis + ticks
+    drawHLine(ctx, PL, PT + ph, pw);
+
+    const ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    ticks.forEach(t => tickAt(ctx, tx(t), PT + ph, t.toFixed(1)));
+
+    axisLabel(ctx, PL + pw / 2, H - 4, 'p');
 }
 
-$('runBtn').addEventListener('click', runSimulation);
+
+/* ------------------------------------------------------------------
+   NORMAL GRAPH (shared by benefit + cost)
+------------------------------------------------------------------ */
+function drawNormal(canvasId, mu, sigma, xAxisLabel) {
+    sigma = Math.max(sigma, 0.01);
+
+    const {ctx, width: W, height: H} = sizeCanvas(canvasId);
+    const PL = 40, PR = 12, PT = 26, PB = 72;
+    const pw = W - PL - PR, ph = H - PT - PB;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const span = sigma * 3.8;
+    const xMin = mu - span, xMax = mu + span;
+
+    const N = 500;
+    const xs = [], ys = [];
+    for (let i = 0; i <= N; i++) {
+        const x = xMin + (i / N) * (xMax - xMin);
+        xs.push(x);
+        ys.push(normalPDF(x, mu, sigma));
+    }
+    const yMax = Math.max(...ys) * 1.18;
+
+    const tx = x => PL + ((x - xMin) / (xMax - xMin)) * pw;
+    const ty = y => PT + ph - (y / yMax) * ph;
+
+    // Fill
+    ctx.beginPath();
+    ctx.moveTo(tx(xs[0]), PT + ph);
+    xs.forEach((x, i) => ctx.lineTo(tx(x), ty(ys[i])));
+    ctx.lineTo(tx(xs[N]), PT + ph);
+    ctx.closePath();
+    ctx.fillStyle = COL_ROSE_FILL;
+    ctx.fill();
+
+    // Stroke
+    ctx.beginPath();
+    ctx.moveTo(tx(xs[0]), ty(ys[0]));
+    for (let i = 1; i <= N; i++) ctx.lineTo(tx(xs[i]), ty(ys[i]));
+    ctx.strokeStyle = COL_ROSE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Zero marker (dashed, only if 0 is in range)
+    if (xMin < 0 && xMax > 0) {
+        const px0 = tx(0);
+        ctx.strokeStyle = 'rgba(201,96,127,0.28)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px0, PT);
+        ctx.lineTo(px0, PT + ph);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Mean dashed line
+    const mupx = tx(mu);
+    ctx.strokeStyle = 'rgba(201,96,127,0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(mupx, PT);
+    ctx.lineTo(mupx, PT + ph);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = COL_ROSE;
+    ctx.font = '12px Roboto Mono, Menlo, Monaco, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('μ', mupx, PT + 14);
+
+    // Axis + ticks
+    drawHLine(ctx, PL, PT + ph, pw);
+
+    const TICKS = 5;
+    for (let i = 0; i <= TICKS; i++) {
+        const xv = xMin + (i / TICKS) * (xMax - xMin);
+        tickAt(ctx, tx(xv), PT + ph, numFmt(xv));
+    }
+
+    axisLabel(ctx, PL + pw / 2, H - 4, xAxisLabel);
+}
+
+function drawBenefit() {
+    const mu = parseFloat(document.getElementById('b-mu').value)    || 100;
+    const s  = Math.max(parseFloat(document.getElementById('b-sigma').value) || 30, 0.1);
+    drawNormal('c-benefit', mu, s, 'B');
+}
+
+function drawCost() {
+    const mu = parseFloat(document.getElementById('c-mu').value)    || 40;
+    const s  = Math.max(parseFloat(document.getElementById('c-sigma').value) || 15, 0.1);
+    drawNormal('c-cost', mu, s, 'C');
+}
+
+
+/* ------------------------------------------------------------------
+   MONTE CARLO SIMULATION
+------------------------------------------------------------------ */
+function simulate() {
+    const alpha = Math.max(parseFloat(document.getElementById('p-alpha').value) || 1, 0.01);
+    const beta  = Math.max(parseFloat(document.getElementById('p-beta').value)  || 1, 0.01);
+    const bMu   = parseFloat(document.getElementById('b-mu').value)    || 100;
+    const bSig  = Math.max(parseFloat(document.getElementById('b-sigma').value) || 30, 0.01);
+    const cMu   = parseFloat(document.getElementById('c-mu').value)    || 40;
+    const cSig  = Math.max(parseFloat(document.getElementById('c-sigma').value) || 15, 0.01);
+
+    go(4); // switch to results page
+
+    const N   = 50000;
+    const evs = new Float64Array(N);
+
+    for (let i = 0; i < N; i++) {
+        const p = sampleBeta(alpha, beta);
+        const B = randNorm(bMu, bSig);
+        const C = randNorm(cMu, cSig);
+        evs[i]  = B * p - C * (1 - p);      // E{asking out | B, C, p}
+    }
+
+    // Stats
+    const sorted  = Array.from(evs).sort((a, b) => a - b);
+    const nPos    = evs.filter(v => v > 0).length;
+    const pct     = (nPos / N * 100).toFixed(1);
+    const meanEV  = evs.reduce((s, v) => s + v, 0) / N;
+    const medEV   = sorted[Math.floor(N / 2)];
+    const shouldAsk = nPos > N / 2;
+
+    // Verdict
+    document.getElementById('res-verdict').textContent =
+        shouldAsk ? 'Go for it.' : 'Maybe not.';
+
+    document.getElementById('res-summary').innerHTML = shouldAsk
+        ? `${pct}% of your ${N.toLocaleString()} simulations produced a positive expected value.`
+        : `Only ${pct}% of simulations came out positive.`;
+
+    // Stat boxes
+    document.getElementById('s-pct').textContent    = pct + '%';
+    document.getElementById('s-mean').textContent   = (meanEV >= 0 ? '+' : '') + Math.round(meanEV);
+    document.getElementById('s-median').textContent = (medEV  >= 0 ? '+' : '') + Math.round(medEV);
+
+    // Draw histogram after paint
+    raf(() => drawHistogram(sorted));
+}
+
+
+/* ------------------------------------------------------------------
+   HISTOGRAM
+------------------------------------------------------------------ */
+function drawHistogram(sorted) {
+    const {ctx, width: W, height: H} = sizeCanvas('c-results');
+    const PL = 50, PR = 16, PT = 34, PB = 80;
+    const pw = W - PL - PR, ph = H - PT - PB;
+
+    ctx.clearRect(0, 0, W, H);
+
+    const xMin  = sorted[0];
+    const xMax  = sorted[sorted.length - 1];
+    const range = xMax - xMin || 1;
+    const BINS  = 72;
+    const bw    = range / BINS;
+
+    const counts = new Array(BINS).fill(0);
+    for (const v of sorted) {
+        const idx = Math.min(Math.floor((v - xMin) / bw), BINS - 1);
+        counts[idx]++;
+    }
+    const maxC = Math.max(...counts);
+
+    const tx = x => PL + ((x - xMin) / range) * pw;
+    const ty = c => PT + ph - (c / maxC) * ph;
+
+    // Bars
+    for (let i = 0; i < BINS; i++) {
+        if (counts[i] === 0) continue;
+        const x0  = xMin + i * bw;
+        const x1  = x0 + bw;
+        const pos = (x0 + x1) / 2 > 0;
+
+        ctx.fillStyle = pos ? COL_GREEN : COL_RED;
+        const barH = PT + ph - ty(counts[i]);
+        ctx.fillRect(tx(x0) + 0.5, ty(counts[i]), Math.max(tx(x1) - tx(x0) - 1, 1), barH);
+    }
+
+    // Zero line
+    if (xMin < 0 && xMax > 0) {
+        const px0 = tx(0);
+        ctx.strokeStyle = COL_CHARCOAL;
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(px0, PT);
+        ctx.lineTo(px0, PT + ph);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = COL_CHARCOAL;
+        ctx.font      = 'bold 11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', px0, PT - 10);
+    }
+
+    // Axis + ticks
+    drawHLine(ctx, PL, PT + ph, pw);
+
+    const TICK_N = 6;
+    for (let i = 0; i <= TICK_N; i++) {
+        const xv = xMin + (i / TICK_N) * range;
+        tickAt(ctx, tx(xv), PT + ph, numFmt(xv));
+    }
+
+    axisLabel(ctx, PL + pw / 2, H - 8,
+        'e');
+
+    // Legend
+    const ly = PT + ph + 36;
+    ctx.fillStyle = COL_RED;
+    ctx.fillRect(PL, ly, 12, 10);
+    ctx.fillStyle = COL_TEXT;
+    ctx.font = '11px Roboto Mono, Menlo, Monaco, Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('negative expected value', PL + 16, ly + 9);
+
+    const leg2x = Math.min(PL + 210, pw / 2 + PL);
+    ctx.fillStyle = COL_GREEN;
+    ctx.fillRect(leg2x, ly, 12, 10);
+    ctx.fillStyle = COL_TEXT;
+    ctx.fillText('positive expected value', leg2x + 16, ly + 9);
+}
 </script>
+
 </body>
 </html>
